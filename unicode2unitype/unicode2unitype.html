@@ -1,0 +1,26 @@
+<!doctype html>
+	<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <title>Unicode To Unitype</title>
+  <style type="text/css">
+	#output {
+		font-family: "WL ArabicNaskh"
+	}	
+  </style>
+  <script type="text/javascript" src="unicode2unitype.js"></script>
+  <script type="text/javascript">
+	onload = function(){
+		$('conv').onclick = function(){
+			$('output').value = unicode2unitype($('input').value);
+		};
+	};
+  </script>
+</head>
+<body>
+  <fieldset>
+    <legend style="text-align: left;">Unicode 2 Unitype</legend>
+    <label>Input: <br /> <textarea rows="20" cols="75" id="input" dir="rtl" wrap="off">لدُّنْيَا</textarea></label>
+    <br /><input type="button" value="&#10003;" title="Convert" id="conv"/><br />
+    <label>Output: <br /> <textarea rows="20" cols="75" id="output" wrap="off" spellcheck="false"></textarea></label>
+  </fieldset>

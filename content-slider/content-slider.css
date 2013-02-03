@@ -1,0 +1,12 @@
+#box {
+	width: 400px;
+	height: 200px;
+	overflow: hidden;
+}
+#container {
+	position: relative;
+}
+#container div {
+	/*float: left;*/
+	height: 200px;
+}

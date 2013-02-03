@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <title>test</title>
+  <style type="text/css">@import "content-slider.css";</style>
+  <script type="text/javascript" src="content-slider.js"></script>
+  <script type="text/javascript">
+	function $(element) {
+		return document.getElementById(element);
+	}
+	onload = function(){
+		contentSlider($("nav"), $("container"), 200, {method : 0});
+	};
+  </script>
+</head>
+<body>
+<ul id="nav">
+  <li><a href="#1">1</a></li>
+  <li><a href="#2">2</a></li>
+  <li><a href="#3">3</a></li>
+</ul>
+<div id="box">
+  <div id="container">
+    <div>
+		<img src="1.png" />
+    </div>
+    <div>
+		<img src="2.png" />
+    </div>
+    <div>
+		<img src="3.png" />
+    </div>
+  </div>
+</div>

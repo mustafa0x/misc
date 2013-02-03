@@ -1,0 +1,3 @@
+This software is designed to convert Unicode (UTF-8) Arabic to Unitype Arabic. Unitype is for programs which don't support RTL character rendering.
+
+This program should be used by a browser which uses the Webkit rendering engine.
