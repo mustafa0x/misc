@@ -1,0 +1,102 @@
+diff --git a/books/pm_live_edit.py b/books/pm_live_edit.py
+--- a/books/pm_live_edit.py
++++ b/books/pm_live_edit.py
+@@ -14,7 +14,6 @@ from books.pm_schema import (
+     live_book_pm_envelope,
+     parse_book_pm_envelope,
+     validate_book_pm_step_batch,
+-    validate_live_book_pm_doc,
+ )
+ from rukn.live_edit_common import (
+     LiveEditError,
+@@ -212,7 +211,7 @@ def materialize_book_pm_doc(
+         if doc is None:
+             raise LiveEditError('join_required', status_code=409)
+         assert_book_pm_doc_schema_matches(doc)
+-        _assert_book_assets(file_obj, validate_live_book_pm_doc(doc.current_doc_json))
++        _assert_book_assets(file_obj, doc.current_doc_json)
+         version = int(doc.version or 0)
+         if version <= int(doc.last_materialized_version or 0):
+             return book_pm_materialized_message(
+diff --git a/books/pm_schema.py b/books/pm_schema.py
+--- a/books/pm_schema.py
++++ b/books/pm_schema.py
+@@ -229,7 +229,7 @@ def parse_book_pm_envelope(text: str | None) -> dict[str, Any]:
+ 
+ 
+ def canonicalize_book_pm_text(text: str | None) -> str:
+-    return live_book_pm_envelope(parse_book_pm_envelope(text)['doc'])
++    return _book_pm_envelope(parse_book_pm_envelope(text)['doc'])
+ 
+ 
+ def book_pm_text_hash(text: str | None) -> str:
+@@ -244,29 +244,37 @@ def is_book_pm_envelope_candidate(text: str | None) -> bool:
+ def normalize_external_book_pm_doc(doc_json: dict[str, Any]) -> dict[str, Any]:
+     _validate_book_pm_json_resources(doc_json)
+     _validate_external_book_pm_shape(doc_json)
+-    try:
+-        doc = book_pm_schema().node_from_json(doc_json)
+-        doc.check()
+-        normalized = cast(dict[str, Any], doc.to_json())
+-    except Exception as exc:
+-        raise BookPMEnvelopeError('invalid_pm_doc') from exc
++    _, normalized = _parse_book_pm_doc(doc_json)
+     _validate_book_pm_json_resources(normalized)
+     _validate_book_pm_contract_doc(normalized)
+     return normalized
+ 
+ 
+ def validate_live_book_pm_doc(doc_json: dict[str, Any]) -> dict[str, Any]:
++    return _parse_live_book_pm_doc(doc_json)[1]
++
++
++def _parse_live_book_pm_doc(doc_json: dict[str, Any]) -> tuple[Any, dict[str, Any]]:
+     _validate_book_pm_json_resources(doc_json)
++    doc, exact = _parse_book_pm_doc(doc_json)
++    if not _same_json_value(exact, doc_json):
++        raise BookPMEnvelopeError('noncanonical_pm_doc')
++    _validate_book_pm_contract_doc(exact)
++    return doc, exact
++
++
++def _parse_book_pm_doc(doc_json: dict[str, Any]) -> tuple[Any, dict[str, Any]]:
+     try:
+         doc = book_pm_schema().node_from_json(doc_json)
+-        doc.check()
+-        exact = cast(dict[str, Any], doc.to_json())
+     except Exception as exc:
+         raise BookPMEnvelopeError('invalid_pm_doc') from exc
+-    if not _same_json_value(exact, doc_json):
+-        raise BookPMEnvelopeError('noncanonical_pm_doc')
+-    _validate_book_pm_contract_doc(exact)
+-    return exact
++    return doc, _checked_book_pm_json(doc)
++
++
++def _checked_book_pm_json(doc: Any) -> dict[str, Any]:
++    try:
++        doc.check()
++        return cast(dict[str, Any], doc.to_json())
++    except Exception as exc:
++        raise BookPMEnvelopeError('invalid_pm_doc') from exc
+ 
+ 
+ def validate_book_pm_step_batch(steps: Any) -> list[dict[str, Any]]:
+@@ -297,7 +305,7 @@ def apply_book_pm_steps(doc_json: dict[str, Any], steps: list[dict[str, Any]]) -
+     from prosemirror.transform import Step
+ 
+     schema = book_pm_schema()
+-    doc = schema.node_from_json(validate_live_book_pm_doc(doc_json))
++    doc, _ = _parse_live_book_pm_doc(doc_json)
+     for step_json in steps:
+         try:
+             step = Step.from_json(schema, step_json)
+@@ -312,7 +320,10 @@ def apply_book_pm_steps(doc_json: dict[str, Any], steps: list[dict[str, Any]]) -
+         if result.failed or result.doc is None:
+             raise BookPMStepApplyError(result.failed)
+         doc = result.doc
+-    return validate_live_book_pm_doc(cast(dict[str, Any], doc.to_json()))
++    exact = _checked_book_pm_json(doc)
++    _validate_book_pm_json_resources(exact)
++    _validate_book_pm_contract_doc(exact)
++    return exact
