@@ -1,1 +1,1 @@
-Run the exact tdl-archive reliability v7 final matrix, including no filesystem mutation and final LOC trims.
+Run the exact tdl-archive reliability v7 final matrix, including no filesystem mutation, final LOC trims, and obsolete-plan deletion.
