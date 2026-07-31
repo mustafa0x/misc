@@ -1,0 +1,73 @@
+name: tdl archive v6 verify
+
+on:
+  push:
+    branches:
+      - tmp/tdl-archive-v6-verify-20260731
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.25.10
+          cache: false
+      - name: Reconstruct and apply patch
+        run: |
+          set -euo pipefail
+          cat <<'SUMS' | sha256sum --check
+          fe44bab27706ec06912469c254213f0862b0ef3cfebbb55890f72ba00da52f67  tdl-archive-v6-ci/patch.xz.b64.00
+          d26416f8ff7ab5294ee24e01849ef3ac5e4c9c2582d0c42bd55ae7745868908d  tdl-archive-v6-ci/patch.xz.b64.01
+          f055867644fb51a61ef0c14a543673e194988d9014b31177e96862098e81829f  tdl-archive-v6-ci/patch.xz.b64.02
+          c097b4a9d60b41c70afad1dbd14e881e7c20a5c7f048b15ce71e1c86fd3ae2e2  tdl-archive-v6-ci/patch.xz.b64.03
+          d01ec436056370103e2c8a0c38e0fe4548ec0250e4dba4c6a54a72ae6447400a  tdl-archive-v6-ci/patch.xz.b64.04
+          79d8c309e0e3b14eb2fa22229d1e0cbdb4c3b4f71337a9411f5b28263114997e  tdl-archive-v6-ci/patch.xz.b64.05
+          b3820757f8e07c78f2e6313442c97aa2bb1a266b86844617e862ce30b7b2499b  tdl-archive-v6-ci/patch.xz.b64.06
+          SUMS
+          cat tdl-archive-v6-ci/patch.xz.b64.{00,01,02,03,04,05,06} | base64 --decode > /tmp/tdl-archive.patch.xz
+          echo 'b98edb58ed4d0f9ed4ab5670ee26292bd156cf31187f865b94203b8fe557446b  /tmp/tdl-archive.patch.xz' | sha256sum --check
+          xz -dc /tmp/tdl-archive.patch.xz > /tmp/tdl-archive.patch
+          echo '2460a899fcedf84f616676b48a35a7a29d43ec0ab373a80636da26b6e2a55a05  /tmp/tdl-archive.patch' | sha256sum --check
+          git clone --filter=blob:none https://github.com/yshalsager/tdl-archive.git /tmp/tdl-archive
+          git -C /tmp/tdl-archive checkout d5cddd4
+          git -C /tmp/tdl-archive apply --check /tmp/tdl-archive.patch
+          git -C /tmp/tdl-archive apply /tmp/tdl-archive.patch
+          cd /tmp/tdl-archive
+          test -z "$(gofmt -l *.go)"
+          git diff --check
+      - name: Verify modules
+        run: cd /tmp/tdl-archive && go mod verify
+      - name: Test
+        run: cd /tmp/tdl-archive && go test -count=1 ./...
+      - name: Vet
+        run: cd /tmp/tdl-archive && go vet ./...
+      - name: Build
+        run: cd /tmp/tdl-archive && go build -trimpath -o /tmp/tdl-archive-bin .
+      - name: Lint
+        run: |
+          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6.2
+          cd /tmp/tdl-archive
+          golangci-lint run
+      - name: Cross-build release targets
+        run: |
+          set -euo pipefail
+          cd /tmp/tdl-archive
+          for target in $(go tool dist list | grep -E '^(darwin|freebsd|linux|windows)/(386|amd64|arm|arm64)$'); do
+            os=${target%/*}
+            arch=${target#*/}
+            if [ "$arch" = arm ]; then
+              for arm in 5 6 7; do
+                CGO_ENABLED=0 GOOS=$os GOARCH=$arch GOARM=$arm go build -trimpath -o /tmp/tdl-archive-$os-$arch-v$arm .
+              done
+            else
+              CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -trimpath -o /tmp/tdl-archive-$os-$arch .
+            fi
+          done
+      - name: Race test
+        run: cd /tmp/tdl-archive && go test -race -count=1 ./...
