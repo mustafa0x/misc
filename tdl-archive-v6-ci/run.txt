@@ -1,1 +1,1 @@
-Run the exact tdl-archive reliability v7 verification matrix, including the final disabled-media no-mutation regression.
+Run the exact tdl-archive reliability v7 verification matrix, including no filesystem mutation when media downloads are disabled.
