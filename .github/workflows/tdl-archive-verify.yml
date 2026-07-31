@@ -1,0 +1,38 @@
+name: tdl archive verify
+
+on:
+  push:
+    branches:
+      - tmp/tdl-archive-verify-20260731
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.25.10
+          cache: false
+      - name: Apply patch
+        run: |
+          set -euo pipefail
+          cat tdl-archive-verify/patch.part* | base64 --decode | gzip --decompress > /tmp/tdl-archive.patch
+          echo 'e4fb564a72f9c5d1947756b1be43fa7f51e28ceb94ccf7448faca6027fb8134c  /tmp/tdl-archive.patch' | sha256sum --check
+          git clone --filter=blob:none https://github.com/yshalsager/tdl-archive.git /tmp/tdl-archive
+          git -C /tmp/tdl-archive checkout d5cddd4
+          git -C /tmp/tdl-archive apply --check /tmp/tdl-archive.patch
+          git -C /tmp/tdl-archive apply /tmp/tdl-archive.patch
+          cd /tmp/tdl-archive
+          test -z "$(gofmt -l *.go)"
+          git diff --check
+      - name: Test
+        run: cd /tmp/tdl-archive && go test -count=1 ./...
+      - name: Vet
+        run: cd /tmp/tdl-archive && go vet ./...
+      - name: Race test
+        run: cd /tmp/tdl-archive && go test -race -count=1 ./...
