@@ -24,8 +24,10 @@ jobs:
       - name: Apply patch
         run: |
           set -euo pipefail
-          cat tdl-archive-verify/cumulative.part* | base64 --decode | gzip --decompress > /tmp/tdl-archive.patch
-          echo 'fbe8147da5426ecbd225843492834715df85a24f05ce8f2dc496c3ab514473f4  /tmp/tdl-archive.patch' | sha256sum --check
+          cat tdl-archive-verify/cumulative-v2.xz.part* > /tmp/tdl-archive.patch.xz
+          echo '9bc1d3ea4e18da5965778d930f3caa53c6398c0037e358cf3ad587a62509467d  /tmp/tdl-archive.patch.xz' | sha256sum --check
+          xz -dc /tmp/tdl-archive.patch.xz > /tmp/tdl-archive.patch
+          echo '5a174882b751224e9d549717d0aa15b44e5b83e47ab175f2293d1d441b2b95c1  /tmp/tdl-archive.patch' | sha256sum --check
           git clone --filter=blob:none https://github.com/yshalsager/tdl-archive.git /tmp/tdl-archive
           git -C /tmp/tdl-archive checkout d5cddd4
           git -C /tmp/tdl-archive apply --check /tmp/tdl-archive.patch
