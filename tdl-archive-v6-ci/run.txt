@@ -1,1 +1,1 @@
-Run the exact tdl-archive reliability v6 verification matrix, including the final media identity correction.
+Run the exact tdl-archive reliability v6 verification matrix, including final peer and media identity corrections.
