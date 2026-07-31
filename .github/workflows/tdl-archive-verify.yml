@@ -24,47 +24,12 @@ jobs:
       - name: Apply patch
         run: |
           set -euo pipefail
-          chunks=(
-            tdl-archive-verify/patch.part00
-            tdl-archive-verify/patch.part01
-            tdl-archive-verify/patch.part02
-            tdl-archive-verify/patch.part03.00
-            tdl-archive-verify/patch.part03.01
-            tdl-archive-verify/patch.part03.02
-            tdl-archive-verify/patch.part03.03
-            tdl-archive-verify/patch.part03.04
-            tdl-archive-verify/patch.part03.05
-            tdl-archive-verify/patch.part03.06
-            tdl-archive-verify/patch.part04
-            tdl-archive-verify/patch.part05
-          )
-          expected=(
-            fc4b9ef3bf278ee5b264197753c77695022cf04e
-            de86046f05bb55ae143ad95afed64812d86456a7
-            7e8c4b75aae723aa4b5f96ad2618a619f454c7d5
-            1ca5328696617af3af3a8c08cb3d8023712aca35
-            a5d1a92694928a9f3c18266ebce6c64127705a12
-            871b40e6a163068b1055e498570dc6037f783a7d
-            a323f9ff4d1ef9e49fb985183885a88be816d58c
-            95220a5c8609f48a02e3c7da6d6c76cad176c38e
-            e0529f0c3a4308a9094ddb84c36c9f0d942b179a
-            aefa0025573b7443b8049aab546a18a893e35750
-            6981aec50e01a20300cb4d8c05d0a2100681c208
-            f8ccf35237956ec8435a54450fea6b28307c8e31
-          )
-          for i in "${!chunks[@]}"; do
-            test "$(git hash-object "${chunks[$i]}")" = "${expected[$i]}"
-          done
-          cat "${chunks[@]}" | base64 --decode | gzip --decompress > /tmp/tdl-archive.patch
-          echo 'e4fb564a72f9c5d1947756b1be43fa7f51e28ceb94ccf7448faca6027fb8134c  /tmp/tdl-archive.patch' | sha256sum --check
-          base64 --decode tdl-archive-verify/final-delta.patch.gz.b64 | gzip --decompress > /tmp/final-delta.patch
-          echo '0afd2017ef92b08cff21b61a845ba9b7ade24536aede96bf0ec5f571588f491f  /tmp/final-delta.patch' | sha256sum --check
+          cat tdl-archive-verify/cumulative.part* | base64 --decode | gzip --decompress > /tmp/tdl-archive.patch
+          echo 'fbe8147da5426ecbd225843492834715df85a24f05ce8f2dc496c3ab514473f4  /tmp/tdl-archive.patch' | sha256sum --check
           git clone --filter=blob:none https://github.com/yshalsager/tdl-archive.git /tmp/tdl-archive
           git -C /tmp/tdl-archive checkout d5cddd4
           git -C /tmp/tdl-archive apply --check /tmp/tdl-archive.patch
           git -C /tmp/tdl-archive apply /tmp/tdl-archive.patch
-          git -C /tmp/tdl-archive apply --check /tmp/final-delta.patch
-          git -C /tmp/tdl-archive apply /tmp/final-delta.patch
           cd /tmp/tdl-archive
           test -z "$(gofmt -l *.go)"
           git diff --check
