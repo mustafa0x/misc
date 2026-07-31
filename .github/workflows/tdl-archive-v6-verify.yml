@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - tmp/tdl-archive-v6-verify-20260731
+  pull_request:
+    branches:
+      - tmp/tdl-archive-v6-verify-20260731
 
 permissions:
   contents: read
